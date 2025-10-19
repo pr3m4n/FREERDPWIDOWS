@@ -40,20 +40,20 @@ jobs:
         run: |
           # Use authkey from secrets to authenticate in headless mode
           # Note: You must create an auth key in your Tailscale admin console and store it in repo secrets.
-          & tailscaled --tun=userspace-networking -state="C:\tailscale\tailscaled.state" --verbose &
+          $ & tailscaled --tun=userspace-networking -state="C:\tailscale\tailscaled.state" --verbose &
           Start-Sleep -Seconds 3
           if (-not $env:TAILSCALE_AUTHKEY) {
             Write-Error "TAILSCALE_AUTHKEY secret is not set. Exiting."
             exit 1
           }
           # tailscale up with authkey (may require admin)
-          $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
+          & $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
           # Wait for Tailscale IP to appear (loop with timeout)
           $retries = 0
           $tsIP = ""
           while ($retries -lt 30 -and -not $tsIP) {
             Start-Sleep -Seconds 2
-            $tsIP = ($tailscaleExe ip -4 2>$null) -join "`n"
+            $tsIP = (& $tailscaleExe ip -4 2>$null) -join "`n"
             $retries++
           }
 
