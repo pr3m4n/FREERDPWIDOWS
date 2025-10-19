@@ -157,8 +157,8 @@ jobs:
           Write-Host "`n🌐 Checking local and Tailscale IP..."
           ipconfig | findstr "IPv4"
 
-          Write-Host "`n🧱 Checking Firewall RDP rule..."
-          netsh advfirewall firewall show rule name="Remote Desktop" | findstr "Enabled"
+          Write-Host "`n🧱 Checking Firewall RDP-Tailscale rule..."
+          netsh advfirewall firewall show rule name="RDP-Tailscale"
 
       - name: Maintain Connection
         shell: pwsh
