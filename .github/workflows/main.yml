@@ -7,63 +7,65 @@ jobs:
   tipsunix-rdp:
     runs-on: windows-latest
     timeout-minutes: 3600
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Tailscale (via Chocolatey)
+      # 🔧 Step 1: Install Tailscale
+      - name: Install Tailscale
         shell: pwsh
         run: |
-          # Install Chocolatey if missing (simple check)
-          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          }
-          choco install tailscale -y
-          # Start tailscaled service (if service exists) or run it
-          if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
-            Start-Service tailscaled
+          Write-Host "Downloading Tailscale installer..."
+          Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
+          Write-Host "Installing Tailscale silently..."
+          Start-Process .\tailscale-setup.exe -ArgumentList "/S" -Wait
+          Write-Host "✅ Tailscale installed."
+
+          # Ensure PATH is updated
+          $env:PATH += ";C:\Program Files\Tailscale"
+          tailscale version
+
+      # 🔐 Step 2: Verify secret is loaded
+      - name: Debug: Verify TAILSCALE_AUTHKEY existence
+        shell: pwsh
+        run: |
+          if ($env:TAILSCALE_AUTHKEY) {
+            Write-Host "✅ Secret TAILSCALE_AUTHKEY is available (value hidden)."
+          } else {
+            Write-Error "❌ Secret TAILSCALE_AUTHKEY is NOT available."
+            exit 1
           }
 
+      # 🚀 Step 3: Start and authenticate Tailscale
       - name: Start and authenticate Tailscale
         shell: pwsh
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          # Use authkey from secrets to authenticate in headless mode
-          # Note: You must create an auth key in your Tailscale admin console and store it in repo secrets.
-          & tailscaled --tun=userspace-networking -state="C:\tailscale\tailscaled.state" --verbose &
-          Start-Sleep -Seconds 3
-          if ($env:TAILSCALE_AUTHKEY) {
-            Write-Host "✅ Secret TAILSCALE_AUTHKEY is available (value hidden)"
-          } else {
-            Write-Error "❌ Secret TAILSCALE_AUTHKEY is NOT available."
-            exit 1
-          }
-          
-          # tailscale up with authkey (may require admin)
-          tailscale up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
-          # Wait for Tailscale IP to appear (loop with timeout)
-          $retries = 0
-          $tsIP = ""
-          while ($retries -lt 30 -and -not $tsIP) {
-            Start-Sleep -Seconds 2
-            $tsIP = (tailscale ip -4 2>$null) -join "`n"
-            $retries++
-          }
+          Write-Host "Starting Tailscale service..."
+          Start-Service "Tailscale" -ErrorAction SilentlyContinue
 
+          # Ensure PATH available for this shell too
+          $env:PATH += ";C:\Program Files\Tailscale"
+
+          Write-Host "Authenticating Tailscale using authkey..."
+          tailscale up --authkey=$env:TAILSCALE_AUTHKEY --hostname="GitHub-RDP" --accept-routes=true --accept-dns=true
+
+          # Get Tailscale IPv4
+          $tsIP = (tailscale ip -4 2>$null) -join "`n"
           if (-not $tsIP) {
-            Write-Error "Tailscale IP not assigned. Exiting."
+            Write-Error "❌ Failed to obtain Tailscale IP. Exiting."
             exit 1
           }
-          Write-Host "Tailscale IP detected: $tsIP"
-          # Export to GITHUB_ENV for later steps
+          Write-Host "✅ Tailscale IP detected: $tsIP"
           Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_IP=$tsIP"
 
+      # ⚙️ Step 4: Configure RDP
       - name: Configure Core RDP Settings
         shell: pwsh
         run: |
-          # Enable Remote Desktop and disable Network Level Authentication (if needed)
+          Write-Host "Configuring RDP..."
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
             -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
@@ -71,25 +73,22 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
             -Name "SecurityLayer" -Value 0 -Force
 
-          # Remove any existing rule with the same name to avoid duplication
-          netsh advfirewall firewall delete rule name="RDP-Tailscale" || Write-Host "No existing firewall rule to delete."
+          netsh advfirewall firewall delete rule name="RDP-Tailscale" | Out-Null
+          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389 | Out-Null
 
-          # For testing, allow any incoming connection on port 3389
-          netsh advfirewall firewall add rule name="RDP-Tailscale" `
-            dir=in action=allow protocol=TCP localport=3389
-
-          # (Optional) Restart the Remote Desktop service to ensure changes take effect
           Restart-Service -Name TermService -Force
+          Write-Host "✅ RDP enabled and firewall configured."
 
+      # 👤 Step 5: Create RDP User
       - name: Create RDP User with Secure Password
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Security
           $charSet = @{
-            Upper = [char[]](65..90)    # A-Z
-            Lower = [char[]](97..122)   # a-z
-            Number = [char[]](48..57)   # 0-9
-            Special = ([char[]](33..47) + [char[]](58..64) + [char[]](91..96) + [char[]](123..126)) # Special characters
+            Upper = [char[]](65..90)
+            Lower = [char[]](97..122)
+            Number = [char[]](48..57)
+            Special = ([char[]](33..47) + [char[]](58..64) + [char[]](91..96) + [char[]](123..126))
           }
           $rawPassword = @()
           $rawPassword += $charSet.Upper | Get-Random -Count 4
@@ -100,44 +99,39 @@ jobs:
           $securePass = ConvertTo-SecureString $Password -AsPlainText -Force
 
           $username = "RDPUser"
-          # Remove user if already present (to avoid duplicates)
           if (Get-LocalUser -Name $username -ErrorAction SilentlyContinue) {
-            Remove-LocalUser -Name $username -ErrorAction SilentlyContinue
+            Remove-LocalUser -Name $username
           }
 
-          # Create local user
           New-LocalUser -Name $username -Password $securePass -FullName "RDP User" -Description "Auto-created RDP user" -PasswordNeverExpires:$true
-
-          # Add to Administrators group so RDP session is allowed (adjust as needed for security)
           Add-LocalGroupMember -Group "Administrators" -Member $username
 
-          # Export plaintext password to GITHUB_ENV so we can display it in Maintain step (BE CAREFUL: this exposes secret in workflow logs)
           Add-Content -Path $env:GITHUB_ENV -Value ("RDP_CREDS=" + $Password)
+          Write-Host "✅ RDP user created: $username"
 
+      # 🔍 Step 6: Verify RDP Accessibility
       - name: Verify RDP Accessibility
         shell: pwsh
         run: |
-          Write-Host "Tailscale IP: $env:TAILSCALE_IP"
-
-          # Test connectivity using Test-NetConnection against the Tailscale IP on port 3389
+          Write-Host "Testing RDP connectivity to $env:TAILSCALE_IP ..."
           $testResult = Test-NetConnection -ComputerName $env:TAILSCALE_IP -Port 3389
           if (-not $testResult.TcpTestSucceeded) {
-            Write-Error "TCP connection to RDP port 3389 failed"
+            Write-Error "❌ TCP connection to RDP port 3389 failed"
             exit 1
           }
-          Write-Host "TCP connectivity successful!"
+          Write-Host "✅ TCP connectivity successful!"
 
+      # 🔄 Step 7: Maintain connection
       - name: Maintain Connection
         shell: pwsh
         run: |
           Write-Host "`n=== RDP ACCESS ==="
-          Write-Host "https://cheap-rdp.net"
+          Write-Host "http://www.youtube.com/@TipsUNIX"
           Write-Host "Address: $env:TAILSCALE_IP"
           Write-Host "Username: RDPUser"
           Write-Host "Password: $env:RDP_CREDS"
-          Write-Host "==============`n"
+          Write-Host "==================`n"
 
-          # Keep runner active indefinitely (or until manually cancelled)
           while ($true) {
             Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
             Start-Sleep -Seconds 300
