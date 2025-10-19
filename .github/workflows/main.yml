@@ -59,8 +59,8 @@ jobs:
             exit 1
           }
           # tailscale up with authkey (may require admin)
-          & "$tailscaleExe" up --authkey $env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
-          #& $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
+          Start-Process -FilePath $tailscaleExe -ArgumentList @("up", "--authkey", $env:TAILSCALE_AUTHKEY, "--hostname", "GH-Actions-RDP", "--accept-routes") -Wait
+          # & $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
           # Wait for Tailscale IP to appear (loop with timeout)
           $retries = 0
           $tsIP = ""
