@@ -28,10 +28,22 @@ jobs:
             exit 1
           }
 
-          # Start tailscaled service (if service exists) or run it
+
+          # Try to start tailscaled (Linux) or Tailscale (Windows)
           if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
             Start-Service tailscaled
+            Write-Host "✅ tailscaled service started (Linux)."
+          } elseif (Get-Service -Name Tailscale -ErrorAction SilentlyContinue) {
+            Start-Service Tailscale
+            Write-Host "✅ Tailscale service started (Windows)."
+          } else {
+            Write-Host "⚠️ No Tailscale service found; continuing..."
           }
+
+          # Start tailscaled service (if service exists) or run it
+          #if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
+          #  Start-Service tailscaled
+          #}
 
       - name: Start and authenticate Tailscale
         shell: pwsh
@@ -40,7 +52,7 @@ jobs:
         run: |
           # Use authkey from secrets to authenticate in headless mode
           # Note: You must create an auth key in your Tailscale admin console and store it in repo secrets.
-          $ & tailscaled --tun=userspace-networking -state="C:\tailscale\tailscaled.state" --verbose &
+          # & tailscaled --tun=userspace-networking -state="C:\tailscale\tailscaled.state" --verbose &
           Start-Sleep -Seconds 3
           if (-not $env:TAILSCALE_AUTHKEY) {
             Write-Error "TAILSCALE_AUTHKEY secret is not set. Exiting."
