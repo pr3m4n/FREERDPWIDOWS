@@ -58,7 +58,7 @@ jobs:
           # Start-Process -FilePath $env:TAILSCALE_EXE -ArgumentList @("up", "--authkey", $env:TAILSCALE_AUTHKEY, "--hostname", "GH-Actions-RDP", "--accept-routes") -Wait
           
           Write-Host "🔹 Running Tailscale up..."
-          & "$tailscaleExe" up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
+          & "$env:TAILSCALE_EXE" up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
           Write-Host "🔍 Checking Tailscale status..."
           Start-Sleep -Seconds 5
           & "$env:TAILSCALE_EXE" status
