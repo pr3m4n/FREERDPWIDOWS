@@ -62,7 +62,7 @@ jobs:
           $tsIP = ""
           while ($retries -lt 30 -and -not $tsIP) {
             Start-Sleep -Seconds 2
-            $tsIP = (& $tailscaleExe ip -4 2>$null) -join "`n"
+            $tsIP = (& "$env:TAILSCALE_EXE" ip -4 2>$null) -join "`n"
             $retries++
           }
 
