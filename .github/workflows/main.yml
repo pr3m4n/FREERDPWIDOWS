@@ -12,21 +12,32 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 🔧 Step 1: Install Tailscale
-      - name: Install Tailscale
+      # 🧩 Step 1: Install Chocolatey + Tailscale
+      - name: Install Chocolatey and Tailscale
         shell: pwsh
         run: |
-          Write-Host "Downloading Tailscale installer..."
-          Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
-          Write-Host "Installing Tailscale silently..."
-          Start-Process .\tailscale-setup.exe -ArgumentList "/S" -Wait
-          Write-Host "✅ Tailscale installed."
+          Write-Host "Installing Chocolatey and Tailscale..."
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          }
 
-          # Ensure PATH is updated
-          $env:PATH += ";C:\Program Files\Tailscale"
+          choco install tailscale -y
+
+          # Add Tailscale path for this shell session
+          $tailscalePath = "C:\Program Files\Tailscale"
+          if (Test-Path $tailscalePath) {
+            Write-Host "Adding $tailscalePath to PATH..."
+            $env:PATH += ";$tailscalePath"
+          } else {
+            Write-Host "⚠️ Warning: Tailscale folder not found at $tailscalePath"
+          }
+
+          # Verify installation
+          Get-Command tailscale | Format-List
           tailscale version
 
-      # 🔐 Step 2: Verify secret is loaded
+      # 🔐 Step 2: Check if secret exists
       - name: Debug: Verify TAILSCALE_AUTHKEY existence
         shell: pwsh
         run: |
@@ -44,34 +55,33 @@ jobs:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           Write-Host "Starting Tailscale service..."
-          Start-Service "Tailscale" -ErrorAction SilentlyContinue
+          if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
+            Start-Service tailscaled
+          }
 
-          # Ensure PATH available for this shell too
+          # Refresh PATH again for this step
           $env:PATH += ";C:\Program Files\Tailscale"
 
-          Write-Host "Authenticating Tailscale using authkey..."
+          Write-Host "Authenticating with Tailscale key..."
           tailscale up --authkey=$env:TAILSCALE_AUTHKEY --hostname="GitHub-RDP" --accept-routes=true --accept-dns=true
 
-          # Get Tailscale IPv4
           $tsIP = (tailscale ip -4 2>$null) -join "`n"
           if (-not $tsIP) {
             Write-Error "❌ Failed to obtain Tailscale IP. Exiting."
             exit 1
           }
+
           Write-Host "✅ Tailscale IP detected: $tsIP"
           Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_IP=$tsIP"
 
-      # ⚙️ Step 4: Configure RDP
+      # ⚙️ Step 4: Configure RDP settings
       - name: Configure Core RDP Settings
         shell: pwsh
         run: |
           Write-Host "Configuring RDP..."
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
-            -Name "fDenyTSConnections" -Value 0 -Force
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-            -Name "UserAuthentication" -Value 0 -Force
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-            -Name "SecurityLayer" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
 
           netsh advfirewall firewall delete rule name="RDP-Tailscale" | Out-Null
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389 | Out-Null
@@ -79,7 +89,7 @@ jobs:
           Restart-Service -Name TermService -Force
           Write-Host "✅ RDP enabled and firewall configured."
 
-      # 👤 Step 5: Create RDP User
+      # 👤 Step 5: Create RDP user with secure password
       - name: Create RDP User with Secure Password
         shell: pwsh
         run: |
@@ -109,7 +119,7 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value ("RDP_CREDS=" + $Password)
           Write-Host "✅ RDP user created: $username"
 
-      # 🔍 Step 6: Verify RDP Accessibility
+      # 🔍 Step 6: Verify RDP accessibility
       - name: Verify RDP Accessibility
         shell: pwsh
         run: |
@@ -125,12 +135,12 @@ jobs:
       - name: Maintain Connection
         shell: pwsh
         run: |
-          Write-Host "`n=== RDP ACCESS ==="
+          Write-Host "`n=== RDP ACCESS INFO ==="
           Write-Host "http://www.youtube.com/@TipsUNIX"
           Write-Host "Address: $env:TAILSCALE_IP"
           Write-Host "Username: RDPUser"
           Write-Host "Password: $env:RDP_CREDS"
-          Write-Host "==================`n"
+          Write-Host "=========================`n"
 
           while ($true) {
             Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
