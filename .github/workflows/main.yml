@@ -29,7 +29,6 @@ jobs:
             exit 1
           }
 
-
           # Try to start tailscaled (Linux) or Tailscale (Windows)
           if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
             Start-Service tailscaled
@@ -55,7 +54,6 @@ jobs:
             exit 1
           }
           # tailscale up with authkey (may require admin)
-          # Start-Process -FilePath $env:TAILSCALE_EXE -ArgumentList @("up", "--authkey", $env:TAILSCALE_AUTHKEY, "--hostname", "GH-Actions-RDP", "--accept-routes") -Wait
           
           Write-Host "🔹 Running Tailscale up..."
           & "$env:TAILSCALE_EXE" up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
@@ -167,7 +165,7 @@ jobs:
             Write-Host "❌ Error retrieving public IP: $_"
           }
     
-          Write-Host "`n🧱 Checking Firewall RDP-Tailscale rule..."
+          Write-Host "`n🔎 Checking Firewall RDP-Tailscale rule..."
           netsh advfirewall firewall show rule name="RDP-Tailscale"
 
       - name: Maintain Connection
