@@ -40,11 +40,6 @@ jobs:
             Write-Host "⚠️ No Tailscale service found; continuing..."
           }
 
-          # Start tailscaled service (if service exists) or run it
-          #if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
-          #  Start-Service tailscaled
-          #}
-
       - name: Start and authenticate Tailscale
         shell: pwsh
         env:
