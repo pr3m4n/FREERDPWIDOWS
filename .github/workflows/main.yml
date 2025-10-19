@@ -148,6 +148,18 @@ jobs:
           }
           Write-Host "TCP connectivity successful!"
 
+      - name: Quick check RDP, IP, and Firewall
+        shell: pwsh
+        run: |
+          Write-Host "🔎 Checking RDP port (3389)..."
+          netstat -ano | findstr ":3389" || Write-Host "⚠️ Port 3389 not listening!"
+
+          Write-Host "`n🌐 Checking local and Tailscale IP..."
+          ipconfig | findstr "IPv4"
+
+          Write-Host "`n🧱 Checking Firewall RDP rule..."
+          netsh advfirewall firewall show rule name="Remote Desktop" | findstr "Enabled"
+
       - name: Maintain Connection
         shell: pwsh
         run: |
