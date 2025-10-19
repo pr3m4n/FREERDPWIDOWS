@@ -1,4 +1,4 @@
-name: RDP_TIPSUNIX
+name: FREE_RDP
 
 on:
   workflow_dispatch:
