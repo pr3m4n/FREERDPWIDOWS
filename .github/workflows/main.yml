@@ -28,7 +28,7 @@ jobs:
       - name: Start and authenticate Tailscale
         shell: pwsh
         env:
-          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: |
           # Use authkey from secrets to authenticate in headless mode
           # Note: You must create an auth key in your Tailscale admin console and store it in repo secrets.
