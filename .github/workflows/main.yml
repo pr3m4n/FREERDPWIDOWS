@@ -156,12 +156,17 @@ jobs:
 
           Write-Host "🌍 Checking public IP address..."
           try {
-            $publicIP = (curl https://ifconfig.me).Content
-            Write-Host "✅ Public IP: $publicIP"
+            $publicIP = (& "C:\Windows\System32\curl.exe" -s https://ifconfig.me)
+            if ($publicIP) {
+              Write-Host "✅ Public IP: $publicIP"
+              "PUBLIC_IP=$publicIP" >> $env:GITHUB_ENV
+            } else {
+              Write-Host "⚠️ No response from ifconfig.me"
+            }
           } catch {
-            Write-Host "⚠️ Failed to get public IP."
+            Write-Host "❌ Error retrieving public IP: $_"
           }
-
+    
           Write-Host "`n🧱 Checking Firewall RDP-Tailscale rule..."
           netsh advfirewall firewall show rule name="RDP-Tailscale"
 
