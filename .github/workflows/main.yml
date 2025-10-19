@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  tipsunix-rdp:
+  FREE_RDP:
     runs-on: windows-latest
     timeout-minutes: 3600
     steps:
