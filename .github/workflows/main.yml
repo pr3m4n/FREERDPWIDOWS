@@ -148,14 +148,19 @@ jobs:
           }
           Write-Host "TCP connectivity successful!"
 
-      - name: Quick check RDP, IP, and Firewall
+      - name: Quick check RDP Port, IP, and Firewall
         shell: pwsh
         run: |
           Write-Host "🔎 Checking RDP port (3389)..."
           netstat -ano | findstr ":3389" || Write-Host "⚠️ Port 3389 not listening!"
 
-          Write-Host "`n🌐 Checking local and Tailscale IP..."
-          ipconfig | findstr "IPv4"
+          Write-Host "🌍 Checking public IP address..."
+          try {
+            $publicIP = (curl https://ifconfig.me).Content
+            Write-Host "✅ Public IP: $publicIP"
+          } catch {
+            Write-Host "⚠️ Failed to get public IP."
+          }
 
           Write-Host "`n🧱 Checking Firewall RDP-Tailscale rule..."
           netsh advfirewall firewall show rule name="RDP-Tailscale"
