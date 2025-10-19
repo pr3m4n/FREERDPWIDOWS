@@ -60,7 +60,7 @@ jobs:
           }
           # tailscale up with authkey (may require admin)
           & "$tailscaleExe" up --authkey $env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
-          & $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
+          #& $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
           # Wait for Tailscale IP to appear (loop with timeout)
           $retries = 0
           $tsIP = ""
