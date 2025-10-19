@@ -49,6 +49,17 @@ jobs:
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
           choco install mobaxterm 7zip notepadplusplus --yes --no-progress
+
+          # FXOpen MT4 from direct URL (manual install)
+          $url = "https://download.mql5.com/cdn/web/fxopen.eu.ltd/mt4/fxopeneu4setup.exe?ref=fxopen.com"
+          $installer = "$env:TEMP\fxopen_mt4_setup.exe"
+
+          Write-Host "⬇️ Downloading FXOpen MT4 from $url ..."
+          Invoke-WebRequest -Uri $url -OutFile $installer
+
+          Write-Host "🚀 Installing FXOpen MT4 silently..."
+          Start-Process -FilePath $installer -ArgumentList "/silent" -Wait
+
           Write-Host "✅ Additional software installed."
 
       - name: Start and authenticate Tailscale
