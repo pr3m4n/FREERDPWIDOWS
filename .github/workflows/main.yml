@@ -19,7 +19,7 @@ jobs:
             Set-ExecutionPolicy Bypass -Scope Process -Force
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
-          choco install tailscale -y
+          choco install tailscale --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
@@ -152,7 +152,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "`n=== RDP ACCESS ==="
-          Write-Host "http://www.youtube.com/@TipsUNIX"
+          Write-Host "http://cheap-rdp.net"
           Write-Host "Address: $env:TAILSCALE_IP"
           Write-Host "Username: RDPUser"
           Write-Host "Password: $env:RDP_CREDS"
