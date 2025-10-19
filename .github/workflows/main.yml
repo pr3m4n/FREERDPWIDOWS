@@ -28,16 +28,19 @@ jobs:
       - name: Start and authenticate Tailscale
         shell: pwsh
         env:
-          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTH }}
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           # Use authkey from secrets to authenticate in headless mode
           # Note: You must create an auth key in your Tailscale admin console and store it in repo secrets.
           & tailscaled --tun=userspace-networking -state="C:\tailscale\tailscaled.state" --verbose &
           Start-Sleep -Seconds 3
-          if (-not $env:TAILSCALE_AUTHKEY) {
-            Write-Error "TAILSCALE_AUTHKEY secret is not set. Exiting."
+          if ($env:TAILSCALE_AUTHKEY) {
+            Write-Host "✅ Secret TAILSCALE_AUTHKEY is available (value hidden)"
+          } else {
+            Write-Error "❌ Secret TAILSCALE_AUTHKEY is NOT available."
             exit 1
           }
+          
           # tailscale up with authkey (may require admin)
           tailscale up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
           # Wait for Tailscale IP to appear (loop with timeout)
