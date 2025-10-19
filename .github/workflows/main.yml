@@ -23,19 +23,17 @@ jobs:
           }
 
           choco install tailscale -y
+          Write-Host "✅ Chocolatey and Tailscale installation complete."
 
-          # Add Tailscale path for this shell session
-          $tailscalePath = "C:\Program Files\Tailscale"
-          if (Test-Path $tailscalePath) {
-            Write-Host "Adding $tailscalePath to PATH..."
-            $env:PATH += ";$tailscalePath"
+          $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
+          if (Test-Path $tailscaleExe) {
+            Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
           } else {
-            Write-Host "⚠️ Warning: Tailscale folder not found at $tailscalePath"
+            Write-Error "❌ Tailscale executable not found at: $tailscaleExe"
+            exit 1
           }
 
-          # Verify installation
-          Get-Command tailscale | Format-List
-          tailscale version
+          & "$tailscaleExe" version
 
       # 🔐 Step 2: Check if secret exists
       - name: Debug: Verify TAILSCALE_AUTHKEY existence
@@ -48,7 +46,7 @@ jobs:
             exit 1
           }
 
-      # 🚀 Step 3: Start and authenticate Tailscale
+      # 🚀 Step 3: Start and authenticate Tailscale (absolute path)
       - name: Start and authenticate Tailscale
         shell: pwsh
         env:
@@ -59,13 +57,19 @@ jobs:
             Start-Service tailscaled
           }
 
-          # Refresh PATH again for this step
-          $env:PATH += ";C:\Program Files\Tailscale"
+          $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
+          if (-not (Test-Path $tailscaleExe)) {
+            Write-Error "❌ Tailscale executable not found at $tailscaleExe"
+            exit 1
+          }
+
+          Write-Host "✅ Using Tailscale binary: $tailscaleExe"
+          & "$tailscaleExe" version
 
           Write-Host "Authenticating with Tailscale key..."
-          tailscale up --authkey=$env:TAILSCALE_AUTHKEY --hostname="GitHub-RDP" --accept-routes=true --accept-dns=true
+          & "$tailscaleExe" up --authkey=$env:TAILSCALE_AUTHKEY --hostname="GitHub-RDP" --accept-routes=true --accept-dns=true
 
-          $tsIP = (tailscale ip -4 2>$null) -join "`n"
+          $tsIP = (& "$tailscaleExe" ip -4 2>$null) -join "`n"
           if (-not $tsIP) {
             Write-Error "❌ Failed to obtain Tailscale IP. Exiting."
             exit 1
