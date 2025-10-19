@@ -58,6 +58,10 @@ jobs:
           Start-Process -FilePath $env:TAILSCALE_EXE -ArgumentList @("up", "--authkey", $env:TAILSCALE_AUTHKEY, "--hostname", "GH-Actions-RDP", "--accept-routes") -Wait
           # & $tailscaleExe up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing to attempt to get IP")
           # Wait for Tailscale IP to appear (loop with timeout)
+          Write-Host "🔍 Checking Tailscale status..."
+          & "$env:TAILSCALE_EXE" status
+
+          # Get TailScale IP Address
           $retries = 0
           $tsIP = ""
           while ($retries -lt 30 -and -not $tsIP) {
