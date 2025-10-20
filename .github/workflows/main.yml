@@ -153,12 +153,17 @@ jobs:
           if (-not (Test-Path $anydeskExe)) { $anydeskExe = "C:\ProgramData\chocolatey\lib\anydesk.portable\tools\AnyDesk.exe" }
           if (-not (Test-Path $anydeskExe)) { Write-Error "❌ AnyDesk not found"; exit 1 }
 
-          & $anydeskExe --start
-          Start-Sleep -Seconds 2
-
           $profileName = "RDP_Access"
           $pw = $env:RDP_CREDS
           if (-not $pw) { Write-Error "Missing RDP_CREDS in environment"; exit 1 }
+
+          # Start AnyDesk service
+          Write-Host "🚀 Starting AnyDesk service..."
+          Start-Process -FilePath $anydeskExe -ArgumentList "--start-service" -WindowStyle Hidden
+          Start-Sleep -Seconds 5
+          Write-Host "🚀 Starting AnyDesk service..."
+          Start-Process -FilePath "$env:ProgramData\chocolatey\lib\anydesk.portable\tools\AnyDesk.exe" -ArgumentList "--start-service" -WindowStyle Hidden
+          Start-Sleep -Seconds 5
 
           Write-Host "🔐 Creating AnyDesk unattended profile..."
           $perms = "+input +clipboard +file_manager +sysinfo +restart"
