@@ -12,6 +12,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Tailscale (via Chocolatey)
+        if: false
         shell: pwsh
         run: |
           # Install Chocolatey if missing
@@ -39,19 +40,8 @@ jobs:
             Write-Host "⚠️ No Tailscale service found; continuing..."
           }
 
-      - name: Install Additional SW
-        shell: pwsh
-        run: |
-          Write-Host "🧩 Installing additional software (MobaXterm, 7zip, Notepad++)..."
-          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-            Write-Host "⚙️ Installing Chocolatey..."
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          }
-          choco install mobaxterm 7zip notepadplusplus --yes --no-progress
-          Write-Host "✅ Additional software installed."
-
       - name: Start and authenticate Tailscale
+        if: false
         shell: pwsh
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -81,6 +71,19 @@ jobs:
           }
           Write-Host "Tailscale IP detected: $tsIP"
           Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_IP=$tsIP"
+
+      - name: Install Additional SW
+        if: false
+        shell: pwsh
+        run: |
+          Write-Host "🧩 Installing additional software (MobaXterm, 7zip, Notepad++)..."
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+            Write-Host "⚙️ Installing Chocolatey..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          }
+          choco install mobaxterm 7zip notepadplusplus --yes --no-progress
+          Write-Host "✅ Additional software installed."
 
       - name: Configure Network (Disable IPv6)
         shell: pwsh
@@ -129,6 +132,7 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value ("RDP_CREDS=" + $Password)
 
       - name: Verify RDP Accessibility
+        if: false
         shell: pwsh
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -222,12 +226,12 @@ jobs:
       - name: Maintain Connection
         shell: pwsh
         run: |
-          Write-Host "n=== RDP ACCESS ==="
-          Write-Host "http://cheap-rdp.net"
-          Write-Host "Address: $env:TAILSCALE_IP"
-          Write-Host "Username: RDPUser"
-          Write-Host "Password: $env:RDP_CREDS"
-          Write-Host "==============n"
+          # Write-Host "n=== RDP ACCESS ==="
+          # Write-Host "http://cheap-rdp.net"
+          # Write-Host "Address: $env:TAILSCALE_IP"
+          # Write-Host "Username: RDPUser"
+          # Write-Host "Password: $env:RDP_CREDS"
+          # Write-Host "==============n"
           while ($true) {
             Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
             Start-Sleep -Seconds 300
