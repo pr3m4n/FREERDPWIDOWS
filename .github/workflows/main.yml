@@ -147,7 +147,7 @@ jobs:
             Set-ExecutionPolicy Bypass -Scope Process -Force
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
-          choco install anydesk --yes --no-progress
+          choco install anydesk.install --yes --no-progress
 
           $anydeskExe = "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
           if (-not (Test-Path $anydeskExe)) { $anydeskExe = "C:\Program Files\AnyDesk\AnyDesk.exe" }
