@@ -142,44 +142,82 @@ jobs:
       - name: Install & Setup AnyDesk (Unattended)
         shell: pwsh
         run: |
-          Write-Host "🧩 Installing AnyDesk..."
-          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          # --- Variables ---
+          $anydeskUrl = "https://download.anydesk.com/AnyDesk.exe"
+          $installDir = "C:\Program Files (x86)\AnyDesk"      # target install folder
+          $tempInstaller = "$env:TEMP\AnyDesk_Install.exe"
+
+          # Download AnyDesk installer
+          Write-Host "⬇️ Downloading AnyDesk installer..."
+          Invoke-WebRequest -Uri $anydeskUrl -OutFile $tempInstaller -UseBasicParsing
+
+          # Install AnyDesk (silent) to chosen folder, start with Windows, create shortcuts
+          Write-Host "⚙️ Installing AnyDesk to $installDir ..."
+          Start-Process -FilePath $tempInstaller -ArgumentList "--install `"$installDir`" --start-with-win --silent --create-shortcuts --create-desktop-icon" -NoNewWindow -Wait
+
+          # Determine actual executable path (two common paths)
+          $anydeskExeCandidates = @(
+            "$installDir\AnyDesk.exe",
+            "C:\Program Files\AnyDesk\AnyDesk.exe",
+            "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
+          )
+          $anydeskExe = $anydeskExeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if (-not $anydeskExe) {
+            Write-Error "❌ AnyDesk executable not found after install. Check installer output."
+            exit 1
           }
-          choco install anydesk --yes --no-progress
+          Write-Host "✅ AnyDesk installed at: $anydeskExe"
 
-          $anydeskExe = "C:\ProgramData\chocolatey\lib\anydesk.portable\AnyDesk.exe"
-          if (-not (Test-Path $anydeskExe)) { $anydeskExe = "C:\ProgramData\chocolatey\lib\anydesk.portable\tools\AnyDesk.exe" }
-          if (-not (Test-Path $anydeskExe)) { Write-Error "❌ AnyDesk not found"; exit 1 }
-
-          $profileName = "RDP_Access"
-          $pw = $env:RDP_CREDS
-          if (-not $pw) { Write-Error "Missing RDP_CREDS in environment"; exit 1 }
-
-          # Start AnyDesk service
-          Write-Host "🚀 Starting AnyDesk service..."
-          Start-Process -FilePath $anydeskExe -ArgumentList "--start-service" -WindowStyle Hidden
-          Start-Sleep -Seconds 5
-          Write-Host "🚀 Starting AnyDesk service..."
-          Start-Process -FilePath "$env:ProgramData\chocolatey\lib\anydesk.portable\tools\AnyDesk.exe" -ArgumentList "--start-service" -WindowStyle Hidden
-          Start-Sleep -Seconds 5
-
-          Write-Host "🔐 Creating AnyDesk unattended profile..."
-          $perms = "+input +clipboard +file_manager +sysinfo +restart"
-          $pw | & $anydeskExe --add-profile $profileName $perms
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "⚠️ Profile may already exist; setting password..."
-            $pw | & $anydeskExe --set-password $profileName
+          # Optional: register license if secret exists (do NOT echo the license in logs)
+          if ($env:ANYDESK_LICENSE) {
+            Write-Host "🔐 Registering AnyDesk license (from secret)..."
+            # Use pipeline to send license to the CLI; avoid printing the license itself
+            $env:ANYDESK_LICENSE | & "$anydeskExe" --register-licence
+            if ($LASTEXITCODE -ne 0) { Write-Host "⚠️ License registration command returned non-zero (check license or permissions)." }
+            Start-Sleep -Seconds 2
           }
 
-          Start-Sleep -Seconds 1
-          $anydeskId = (& $anydeskExe --get-id | Out-String).Trim()
+          # Ensure the service is started (install should create service)
+          Write-Host "🚀 Ensuring AnyDesk service is running..."
+          # try CLI start-service, then fallback to Windows service control
+          try {
+            & "$anydeskExe" --start-service 2>$null
+          } catch {}
+            Start-Sleep -Seconds 3
+            if ((Get-Service -Name AnyDesk -ErrorAction SilentlyContinue).Status -ne "Running") {
+            try { Start-Service -Name AnyDesk -ErrorAction SilentlyContinue } catch {}
+          }
+          Start-Sleep -Seconds 3
+
+          # Set unattended password (use RDP_CREDS stored in GITHUB_ENV earlier)
+          if (-not $env:RDP_CREDS) {
+            Write-Error "Missing RDP_CREDS environment variable. Cannot set unattended password."
+          } else {
+            Write-Host "🔐 Setting unattended password (from RDP_CREDS)..."
+            # Send password via pipeline to the CLI; this avoids exposing password as argument
+            $env:RDP_CREDS | & "$anydeskExe" --set-password
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "⚠️ --set-password returned non-zero. Check AnyDesk version / permissions."
+            } else {
+              Write-Host "✅ Unattended password set."
+            }
+          }
+
+          # Get AnyDesk ID and status
+          Write-Host "🔎 Retrieving AnyDesk ID and status..."
+          $anydeskId = (& "$anydeskExe" --get-id 2>$null | Out-String).Trim()
+          $status = (& "$anydeskExe" --get-status 2>$null | Out-String).Trim()
+
+          if (-not $anydeskId) {
+            Write-Error "❌ Failed to read AnyDesk ID (service may not be running or CLI not supported)."
+            exit 1
+          }
 
           Write-Host "`n=== ANYDESK ACCESS ==="
           Write-Host "ID: $anydeskId"
-          Write-Host "Password: $pw"
-          Write-Host "Profile: $profileName"
+          Write-Host "Status: $status"
+          Write-Host "Password: (hidden - from RDP_CREDS)"
           Write-Host "========================`n"
 
       - name: Maintain Connection
