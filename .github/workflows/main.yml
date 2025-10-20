@@ -14,7 +14,6 @@ jobs:
       - name: Install Tailscale (via Chocolatey)
         shell: pwsh
         run: |
-          # Install Chocolatey if missing
           if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
             Set-ExecutionPolicy Bypass -Scope Process -Force
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
@@ -22,44 +21,29 @@ jobs:
           choco install tailscale --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
-            Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
             Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_EXE=$tailscaleExe"
           } else {
-            Write-Error "❌ Tailscale executable not found at: $tailscaleExe"
+            Write-Error "❌ Tailscale executable not found."
             exit 1
           }
-
           if (Get-Service -Name tailscaled -ErrorAction SilentlyContinue) {
             Start-Service tailscaled
-            Write-Host "✅ tailscaled service started (Linux)."
           } elseif (Get-Service -Name Tailscale -ErrorAction SilentlyContinue) {
             Start-Service Tailscale
-            Write-Host "✅ Tailscale service started (Windows)."
-          } else {
-            Write-Host "⚠️ No Tailscale service found; continuing..."
           }
 
       - name: Install Additional SW
         shell: pwsh
         run: |
-          Write-Host "🧩 Installing additional software (MobaXterm, 7zip, Notepad++)..."
           if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-            Write-Host "⚙️ Installing Chocolatey..."
             Set-ExecutionPolicy Bypass -Scope Process -Force
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
           choco install mobaxterm 7zip notepadplusplus --yes --no-progress
-
-          # FXOpen MT4 from direct URL (manual install)
           $url = "https://download.mql5.com/cdn/web/fxopen.eu.ltd/mt4/fxopeneu4setup.exe?ref=fxopen.com"
           $installer = "$env:TEMP\fxopen_mt4_setup.exe"
-
-          Write-Host "⬇️ Downloading FXOpen MT4 from $url ..."
           Invoke-WebRequest -Uri $url -OutFile $installer
-
-          Write-Host "🚀 Installing FXOpen MT4 silently..."
           Start-Process -FilePath $installer -ArgumentList "/silent" -Wait
-
           Write-Host "✅ Additional software installed."
 
       - name: Start and authenticate Tailscale
@@ -67,40 +51,23 @@ jobs:
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          Start-Sleep -Seconds 3
           if (-not $env:TAILSCALE_AUTHKEY) {
             Write-Error "TAILSCALE_AUTHKEY secret is not set. Exiting."
             exit 1
           }
-
-          Write-Host "🔹 Running Tailscale up..."
-          & "$env:TAILSCALE_EXE" up --authkey=$env:TAILSCALE_AUTHKEY || (Write-Host "tailscale up returned non-zero code; continuing")
-          Write-Host "🔍 Checking Tailscale status..."
+          & "$env:TAILSCALE_EXE" up --authkey=$env:TAILSCALE_AUTHKEY
           Start-Sleep -Seconds 5
           & "$env:TAILSCALE_EXE" status
-
-          $retries = 0
-          $tsIP = ""
-          while ($retries -lt 30 -and -not $tsIP) {
-            Start-Sleep -Seconds 4
-            $tsIP = (& "$env:TAILSCALE_EXE" ip -4 2>$null) -join "`n"
-            $retries++
-          }
-          if (-not $tsIP) {
-            Write-Error "Tailscale IP not assigned. Exiting."
-            exit 1
-          }
-          Write-Host "Tailscale IP detected: $tsIP"
+          $tsIP = (& "$env:TAILSCALE_EXE" ip -4 2>$null) -join "`n"
+          if (-not $tsIP) { Write-Error "No Tailscale IP."; exit 1 }
           Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_IP=$tsIP"
 
       - name: Configure Network (Disable IPv6)
         shell: pwsh
         run: |
-          Write-Host "🌐 Disabling IPv6 on all network interfaces..."
           Get-NetAdapter | ForEach-Object {
             Disable-NetAdapterBinding -Name $_.Name -ComponentID ms_tcpip6 -ErrorAction SilentlyContinue
           }
-          Write-Host "✅ IPv6 disabled on all adapters."
 
       - name: Configure Core RDP Settings
         shell: pwsh
@@ -111,8 +78,7 @@ jobs:
             -Name "UserAuthentication" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
             -Name "SecurityLayer" -Value 0 -Force
-
-          netsh advfirewall firewall delete rule name="RDP-Tailscale" || Write-Host "No existing firewall rule to delete."
+          netsh advfirewall firewall delete rule name="RDP-Tailscale" || Write-Host "No existing firewall rule."
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
           Restart-Service -Name TermService -Force
 
@@ -133,56 +99,73 @@ jobs:
           $rawPassword += $charSet.Special | Get-Random -Count 4
           $Password = -join ($rawPassword | Sort-Object { Get-Random })
           $securePass = ConvertTo-SecureString $Password -AsPlainText -Force
-
           $username = "RDPUser"
           if (Get-LocalUser -Name $username -ErrorAction SilentlyContinue) {
             Remove-LocalUser -Name $username -ErrorAction SilentlyContinue
           }
-          New-LocalUser -Name $username -Password $securePass -FullName "RDP User" -Description "Auto-created RDP user" -PasswordNeverExpires:$true
+          New-LocalUser -Name $username -Password $securePass -FullName "RDP User" -PasswordNeverExpires:$true
           Add-LocalGroupMember -Group "Administrators" -Member $username
           Add-Content -Path $env:GITHUB_ENV -Value ("RDP_CREDS=" + $Password)
 
       - name: Verify RDP Accessibility
         shell: pwsh
         run: |
-          Write-Host "Tailscale IP: $env:TAILSCALE_IP"
           $testResult = Test-NetConnection -ComputerName $env:TAILSCALE_IP -Port 3389
           if (-not $testResult.TcpTestSucceeded) {
             Write-Error "TCP connection to RDP port 3389 failed"
             exit 1
           }
-          Write-Host "TCP connectivity successful!"
 
-      - name: Quick check RDP Port, IP, and Firewall
+      - name: Install & Setup AnyDesk (Unattended)
         shell: pwsh
         run: |
-          Write-Host "🔎 Checking RDP port (3389)..."
-          netstat -ano | findstr ":3389" || Write-Host "⚠️ Port 3389 not listening!"
-          Write-Host "🌍 Checking public IP address..."
-          try {
-            $publicIP = (& "C:\Windows\System32\curl.exe" -s https://ifconfig.me)
-            if ($publicIP) {
-              Write-Host "✅ Public IP: $publicIP"
-              "PUBLIC_IP=$publicIP" >> $env:GITHUB_ENV
-            } else {
-              Write-Host "⚠️ No response from ifconfig.me"
-            }
-          } catch {
-            Write-Host "❌ Error retrieving public IP: $_"
+          Write-Host "🧩 Installing AnyDesk..."
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
-          Write-Host "`n🔎 Checking Firewall RDP-Tailscale rule..."
-          netsh advfirewall firewall show rule name="RDP-Tailscale"
+          choco install anydesk --yes --no-progress
+
+          $anydeskExe = "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
+          if (-not (Test-Path $anydeskExe)) { $anydeskExe = "C:\Program Files\AnyDesk\AnyDesk.exe" }
+          if (-not (Test-Path $anydeskExe)) { Write-Error "❌ AnyDesk not found"; exit 1 }
+
+          & $anydeskExe --start
+          Start-Sleep -Seconds 2
+
+          $profileName = "RDP_Access"
+          $pw = $env:RDP_CREDS
+          if (-not $pw) { Write-Error "Missing RDP_CREDS in environment"; exit 1 }
+
+          Write-Host "🔐 Creating AnyDesk unattended profile..."
+          $perms = "+input +clipboard +file_manager +sysinfo +restart"
+          $pw | & $anydeskExe --add-profile $profileName $perms
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "⚠️ Profile may already exist; setting password..."
+            $pw | & $anydeskExe --set-password $profileName
+          }
+
+          Start-Sleep -Seconds 1
+          $anydeskId = (& $anydeskExe --get-id | Out-String).Trim()
+
+          Write-Host "`n=== ANYDESK ACCESS ==="
+          Write-Host "ID: $anydeskId"
+          Write-Host "Password: $pw"
+          Write-Host "Profile: $profileName"
+          Write-Host "========================`n"
 
       - name: Maintain Connection
         shell: pwsh
         run: |
           Write-Host "`n=== RDP ACCESS ==="
-          Write-Host "http://cheap-rdp.net"
           Write-Host "Address: $env:TAILSCALE_IP"
           Write-Host "Username: RDPUser"
           Write-Host "Password: $env:RDP_CREDS"
           Write-Host "==============`n"
+          Write-Host "`n=== ANYDESK ACCESS ==="
+          Write-Host "Use ID and Password above to connect via AnyDesk."
+          Write-Host "==============`n"
           while ($true) {
-            Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
+            Write-Host "[$(Get-Date)] Session active..."
             Start-Sleep -Seconds 300
           }
