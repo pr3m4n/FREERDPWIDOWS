@@ -139,6 +139,44 @@ jobs:
           }
           Write-Host "TCP connectivity successful!"
 
+      - name: Install & Setup AnyDesk (Unattended)
+        shell: pwsh
+        run: |
+          Write-Host "🧩 Installing AnyDesk..."
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          }
+          choco install anydesk --yes --no-progress
+
+          $anydeskExe = "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
+          if (-not (Test-Path $anydeskExe)) { $anydeskExe = "C:\Program Files\AnyDesk\AnyDesk.exe" }
+          if (-not (Test-Path $anydeskExe)) { Write-Error "❌ AnyDesk not found"; exit 1 }
+
+          & $anydeskExe --start
+          Start-Sleep -Seconds 2
+
+          $profileName = "RDP_Access"
+          $pw = $env:RDP_CREDS
+          if (-not $pw) { Write-Error "Missing RDP_CREDS in environment"; exit 1 }
+
+          Write-Host "🔐 Creating AnyDesk unattended profile..."
+          $perms = "+input +clipboard +file_manager +sysinfo +restart"
+          $pw | & $anydeskExe --add-profile $profileName $perms
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "⚠️ Profile may already exist; setting password..."
+            $pw | & $anydeskExe --set-password $profileName
+          }
+
+          Start-Sleep -Seconds 1
+          $anydeskId = (& $anydeskExe --get-id | Out-String).Trim()
+
+          Write-Host "`n=== ANYDESK ACCESS ==="
+          Write-Host "ID: $anydeskId"
+          Write-Host "Password: $pw"
+          Write-Host "Profile: $profileName"
+          Write-Host "========================`n"
+
       - name: Maintain Connection
         shell: pwsh
         run: |
