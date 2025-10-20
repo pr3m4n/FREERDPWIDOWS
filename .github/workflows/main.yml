@@ -170,13 +170,13 @@ jobs:
           Write-Host "✅ AnyDesk installed at: $anydeskExe"
 
           # Optional: register license if secret exists (do NOT echo the license in logs)
-          if ($env:ANYDESK_LICENSE) {
-            Write-Host "🔐 Registering AnyDesk license (from secret)..."
+          #if ($env:ANYDESK_LICENSE) {
+          #  Write-Host "🔐 Registering AnyDesk license (from secret)..."
             # Use pipeline to send license to the CLI; avoid printing the license itself
-            $env:ANYDESK_LICENSE | & "$anydeskExe" --register-licence
-            if ($LASTEXITCODE -ne 0) { Write-Host "⚠️ License registration command returned non-zero (check license or permissions)." }
-            Start-Sleep -Seconds 2
-          }
+          #  $env:ANYDESK_LICENSE | & "$anydeskExe" --register-licence
+          #  if ($LASTEXITCODE -ne 0) { Write-Host "⚠️ License registration command returned non-zero (check license or permissions)." }
+          #  Start-Sleep -Seconds 2
+          #}
 
           # Ensure the service is started (install should create service)
           Write-Host "🚀 Ensuring AnyDesk service is running..."
@@ -213,11 +213,10 @@ jobs:
             Write-Error "❌ Failed to read AnyDesk ID (service may not be running or CLI not supported)."
             exit 1
           }
-
           Write-Host "`n=== ANYDESK ACCESS ==="
           Write-Host "ID: $anydeskId"
           Write-Host "Status: $status"
-          Write-Host "Password: (hidden - from RDP_CREDS)"
+          Write-Host "Password: $env:RDP_CREDS"
           Write-Host "========================`n"
 
       - name: Maintain Connection
