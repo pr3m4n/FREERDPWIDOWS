@@ -128,7 +128,7 @@ jobs:
           Add-LocalGroupMember -Group "Administrators" -Member $username
           Add-Content -Path $env:GITHUB_ENV -Value ("RDP_CREDS=" + $Password)
 
-      - name: Verify RDP Accessibility 
+      - name: Verify RDP Tailscale Accessibility 
         shell: pwsh
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -190,7 +190,7 @@ jobs:
           }
           Start-Sleep -Seconds 3
 
-          # Set unattended password (use RDP_CREDS stored in GITHUB_ENV earlier)
+          # Set Anydesk unattended password (use RDP_CREDS stored in GITHUB_ENV earlier)
           if (-not $env:RDP_CREDS) {
             Write-Error "Missing RDP_CREDS environment variable. Cannot set unattended password."
           } else {
