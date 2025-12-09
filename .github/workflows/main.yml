@@ -11,8 +11,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Tailscale (disabled)
-        if: false
+      - name: Install Tailscale 
         shell: pwsh
         run: |
           # Install Chocolatey if missing
@@ -40,8 +39,7 @@ jobs:
             Write-Host "⚠️ No Tailscale service found; continuing..."
           }
 
-      - name: Start and authenticate (disabled)
-        if: false
+      - name: Start and authenticate Tailscale
         shell: pwsh
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -130,8 +128,7 @@ jobs:
           Add-LocalGroupMember -Group "Administrators" -Member $username
           Add-Content -Path $env:GITHUB_ENV -Value ("RDP_CREDS=" + $Password)
 
-      - name: Verify RDP Accessibility (disabled)
-        if: false
+      - name: Verify RDP Accessibility 
         shell: pwsh
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
