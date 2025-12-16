@@ -28,11 +28,7 @@ jobs:
             Write-Error "❌ Brave installation failed via both winget and direct installer."
             exit 1
           }
-          # Multi tab Notepad
-          Get-AppxPackage *Microsoft.WindowsNotepad* | ForEach-Object {
-            Write-Host "🔹 Updating Notepad..."
-            Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml"
-          }
+
           choco install tailscale googlechrome autohotkey choco install scite4autohotkey  --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
@@ -88,6 +84,12 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "🧩 SW Additional settings..."
+          # Multi tab Notepad
+          Get-AppxPackage *Microsoft.WindowsNotepad* | ForEach-Object {
+            Write-Host "🔹 Updating Notepad..."
+            Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml"
+          }
+
           # Chrome & Brave (pakai Chrome Web Store ID)
           $chromeExt = "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx"
           $braveExt  = $chromeExt
