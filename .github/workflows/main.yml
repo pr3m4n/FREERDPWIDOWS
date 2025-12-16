@@ -82,6 +82,14 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "🧩 SW Additional settings..."
+          $WshShell = New-Object -ComObject WScript.Shell
+          $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\WindowSpy.lnk")
+          $Shortcut.TargetPath = "C:\Program Files\AutoHotkey\WindowSpy.ahk"
+          $Shortcut.WorkingDirectory = "C:\Program Files\AutoHotkey"
+          $Shortcut.IconLocation = "C:\Program Files\AutoHotkey\AutoHotkey.exe,0"
+          $Shortcut.Save()
+          Write-Host "✅ Shortcut WindowSpy.lnk created on Desktop"
+          
           # Chrome & Brave (pakai Chrome Web Store ID)
           $chromeExt = "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx"
           $braveExt  = $chromeExt
@@ -110,7 +118,7 @@ jobs:
           }
           New-ItemProperty -Path $bravePath -Name '1' -Value $braveExt -PropertyType String -Force
 
-          Write-Host "✅ Additional software installed."
+          Write-Host "✅ Browser Extension installed."
     
       - name: Configure Network (Disable IPv6)
         shell: pwsh
