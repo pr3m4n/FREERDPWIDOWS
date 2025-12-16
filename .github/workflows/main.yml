@@ -82,6 +82,36 @@ jobs:
           choco install bravebrowser googlechrome autohotkey mobaxterm 7zip notepadplusplus --yes --no-progress
           Write-Host "✅ Additional software installed."
 
+
+- name: Inject Extension Policy (Chrome, Edge, Brave)
+  shell: pwsh
+  run: |
+    $extId = "bbdhfoclddncoaomddgkaaphcnddbpdh;https://clients2.google.com/service/update2/crx"
+
+    # Chrome
+    $chromePath = "HKLM:\SOFTWARE\Policies\Google\Chrome\ExtensionInstallForcelist"
+    if (-not (Test-Path $chromePath)) {
+      New-Item -Path "HKLM:\SOFTWARE\Policies\Google\Chrome" -Name "ExtensionInstallForcelist" -Force | Out-Null
+    }
+    New-ItemProperty -Path $chromePath -Name "1" -Value $extId -PropertyType String -Force
+
+    # Edge
+    $edgePath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallForcelist"
+    if (-not (Test-Path $edgePath)) {
+      New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "ExtensionInstallForcelist" -Force | Out-Null
+    }
+    New-ItemProperty -Path $edgePath -Name "1" -Value $extId -PropertyType String -Force
+
+    # Brave
+    $bravePath = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave\ExtensionInstallForcelist"
+    if (-not (Test-Path $bravePath)) {
+      New-Item -Path "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave" -Name "ExtensionInstallForcelist" -Force | Out-Null
+    }
+    New-ItemProperty -Path $bravePath -Name "1" -Value $extId -PropertyType String -Force
+
+    Write-Host "✅ rektCaptcha extension policy injected for Chrome, Edge, Brave"
+
+    
       - name: Configure Network (Disable IPv6)
         shell: pwsh
         run: |
@@ -90,6 +120,7 @@ jobs:
             Disable-NetAdapterBinding -Name $_.Name -ComponentID ms_tcpip6 -ErrorAction SilentlyContinue
           }
           Write-Host "✅ IPv6 disabled on all adapters."
+
 
       - name: Configure Core RDP Settings
         shell: pwsh
