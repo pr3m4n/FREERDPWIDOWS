@@ -70,7 +70,6 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_IP=$tsIP"
 
       - name: Additional Settings 
-        if: false
         shell: pwsh
         run: |
           Write-Host "🧩 SW Additional settings..."
