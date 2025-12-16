@@ -27,7 +27,11 @@ jobs:
             Write-Error "❌ Brave installation failed via both winget and direct installer."
             exit 1
           }
-          choco install tailscale googlechrome autohotkey 7zip notepadplusplus --yes --no-progress
+          Get-AppxPackage *Microsoft.WindowsNotepad* | ForEach-Object {
+            Write-Host "🔹 Updating Notepad..."
+            Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml"
+          }
+          choco install tailscale googlechrome autohotkey choco install scite4autohotkey  --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
