@@ -13,7 +13,7 @@ jobs:
       - name: Install Tailscale 
         shell: pwsh
         run: |
-           Install Chocolatey if missing
+          # Install Chocolatey if missing
           if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
             Set-ExecutionPolicy Bypass -Scope Process -Force
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
