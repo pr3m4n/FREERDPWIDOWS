@@ -19,7 +19,7 @@ jobs:
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
           choco install brave --pre -y --no-progress
-          choco install tailscale bravebrowser googlechrome autohotkey mobaxterm 7zip notepadplusplus --yes --no-progress
+          choco install tailscale googlechrome autohotkey 7zip notepadplusplus --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
