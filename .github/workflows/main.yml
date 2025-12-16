@@ -14,20 +14,12 @@ jobs:
       - name: Install Tailscale 
         shell: pwsh
         run: |
-          # Install Chocolatey if missing
-          #if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-          #  Set-ExecutionPolicy Bypass -Scope Process -Force
-          #  iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          #}
-          #choco install tailscale --yes --no-progress
-          $commonArgs = "--silent --accept-source-agreements --accept-package-agreements"
-          winget install -e --id Brave.Brave --silent
-          winget install -e --id Google.Chrome --silent
-          winget install -e --id AutoHotkey.AutoHotkey --silent
-          winget install -e --id Mobatek.MobaXterm --silent
-          winget install -e --id 7zip.7zip --silent
-          winget install -e --id Notepad++.Notepad++ --silent
-          winget install -e --id Tailscale.Tailscale --silent
+           Install Chocolatey if missing
+          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          }
+          choco install tailscale bravebrowser googlechrome autohotkey mobaxterm 7zip notepadplusplus --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
@@ -78,16 +70,36 @@ jobs:
           Write-Host "Tailscale IP detected: $tsIP"
           Add-Content -Path $env:GITHUB_ENV -Value "TAILSCALE_IP=$tsIP"
 
-      - name: Install Additional SW 
+      - name: Additional Settings 
+        #if: false
         shell: pwsh
         run: |
-          Write-Host "🧩 Installing additional software (MobaXterm, 7zip, Notepad++)..."
-          if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-            Write-Host "⚙️ Installing Chocolatey..."
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          Write-Host "🧩 SW Additional settings..."
+          $extId = "bbdhfoclddncoaomddgkaaphcnddbpdh;https://clients2.google.com/service/update2/crx"
+
+          # Chrome
+          $chromePath = 'HKLM:\SOFTWARE\Policies\Google\Chrome\ExtensionInstallForcelist'
+          if (-not (Test-Path $chromePath)) {
+            New-Item -Path 'HKLM:\SOFTWARE\Policies\Google\Chrome' -Name 'ExtensionInstallForcelist' -Force | Out-Null
           }
-          choco install bravebrowser googlechrome autohotkey mobaxterm 7zip notepadplusplus --yes --no-progress
+          New-ItemProperty -Path $chromePath -Name '1' -Value $extId -PropertyType String -Force
+
+          # Edge
+          $edgePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallForcelist'
+          if (-not (Test-Path $edgePath)) {
+            New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+          }
+          New-ItemProperty -Path $edgePath -Name '1' -Value $extId -PropertyType String -Force
+
+          # Brave
+          $bravePath = 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave\ExtensionInstallForcelist'
+          if (-not (Test-Path $bravePath)) {
+            New-Item -Path 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+          }
+          New-ItemProperty -Path $bravePath -Name '1' -Value $extId -PropertyType String -Force
+
+          Write-Host "✅ rektCaptcha extension policy injected for Chrome, Edge, Brave"
+
           Write-Host "✅ Additional software installed."
     
       - name: Configure Network (Disable IPv6)
@@ -103,6 +115,10 @@ jobs:
       - name: Configure Core RDP Settings
         shell: pwsh
         run: |
+          Write-Host "🕒 Setting timezone to GMT+7 (Jakarta)..."
+          tzutil /s "SE Asia Standard Time"
+          Write-Host "✅ Timezone set to GMT+7 (Jakarta)"
+
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
