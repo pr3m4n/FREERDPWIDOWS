@@ -18,7 +18,8 @@ jobs:
             Set-ExecutionPolicy Bypass -Scope Process -Force
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
-          choco install brave --pre -y --no-progress
+          #choco install brave --pre -y --no-progress
+          winget install -e --id Brave.Brave --accept-source-agreements --accept-package-agreements --silent
           choco install tailscale googlechrome autohotkey 7zip notepadplusplus --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
@@ -74,7 +75,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "🧩 SW Additional settings..."
-          $extId = "bbdhfoclddncoaomddgkaaphcnddbpdh;https://clients2.google.com/service/update2/crx"
+          $extId = "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx"
 
           # Chrome
           $chromePath = 'HKLM:\SOFTWARE\Policies\Google\Chrome\ExtensionInstallForcelist'
@@ -96,8 +97,6 @@ jobs:
             New-Item -Path 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' -Name 'ExtensionInstallForcelist' -Force | Out-Null
           }
           New-ItemProperty -Path $bravePath -Name '1' -Value $extId -PropertyType String -Force
-
-          Write-Host "✅ rektCaptcha extension policy injected for Chrome, Edge, Brave"
 
           Write-Host "✅ Additional software installed."
     
@@ -237,21 +236,21 @@ jobs:
             Write-Error "❌ Failed to read AnyDesk ID (service may not be running or CLI not supported)."
             exit 1
           }
-          Write-Host "`n=== ANYDESK ACCESS ==="
-          Write-Host "ID: $anydeskId"
-          Write-Host "Status: $status"
-          Write-Host "Password: $env:RDP_CREDS"
-          Write-Host "========================`n"
+          #Write-Host "`n=== ANYDESK ACCESS ==="
+          #Write-Host "ID: $anydeskId"
+          #Write-Host "Status: $status"
+          #Write-Host "Password: $env:RDP_CREDS"
+          #Write-Host "========================`n"
 
       - name: Maintain Connection
         shell: pwsh
         run: |
-          # Write-Host "n=== RDP ACCESS ==="
-          # Write-Host "http://cheap-rdp.net"
-          # Write-Host "Address: $env:TAILSCALE_IP"
-          # Write-Host "Username: RDPUser"
-          # Write-Host "Password: $env:RDP_CREDS"
-          # Write-Host "==============n"
+          Write-Host "n=== RDP ACCESS ==="
+          Write-Host "http://cheap-rdp.net"
+          Write-Host "Address: $env:TAILSCALE_IP"
+          Write-Host "Username: RDPUser"
+          Write-Host "Password: $env:RDP_CREDS"
+          Write-Host "==============n"
           while ($true) {
             Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
             Start-Sleep -Seconds 300
