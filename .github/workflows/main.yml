@@ -84,6 +84,27 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "🧩 SW Additional settings..."
+          Write-Host "🕒 Setting timezone to GMT+7 (Jakarta)..."
+          tzutil /s "SE Asia Standard Time"
+          Write-Host "✅ Timezone set to GMT+7 (Jakarta)"
+
+          # Lock RDP resolution to 1920x1080
+          $rdpKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp"
+          Set-ItemProperty -Path $rdpKey -Name "DesktopWidth" -Value 1920
+          Set-ItemProperty -Path $rdpKey -Name "DesktopHeight" -Value 1080
+          Set-ItemProperty -Path $rdpKey -Name "ColorDepth" -Value 32
+          Write-Host "✅ RDP resolution locked to 1920x1080"
+
+          # Remove wallpaper (force black background)
+          Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value ""
+          Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name WallpaperStyle -Value 0 rundll32.exe user32.dll, UpdatePerUserSystemParameters
+          Write-Host "✅ Wallpaper removed, background will be black"
+          
+          # Restart RDP service to apply resolution changes
+          #Stop-Service -Name TermService -Force
+          #Start-Service -Name TermService
+          #Write-Host "🔄 RDP service restarted, settings applied"
+
           # Multi tab Notepad
           Get-AppxPackage *Microsoft.WindowsNotepad* | ForEach-Object {
             Write-Host "🔹 Updating Notepad..."
@@ -133,10 +154,6 @@ jobs:
       - name: Configure Core RDP Settings
         shell: pwsh
         run: |
-          Write-Host "🕒 Setting timezone to GMT+7 (Jakarta)..."
-          tzutil /s "SE Asia Standard Time"
-          Write-Host "✅ Timezone set to GMT+7 (Jakarta)"
-
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
@@ -183,7 +200,6 @@ jobs:
           Write-Host "TCP connectivity successful!"
 
       - name: Install & Setup AnyDesk (Unattended)
-        if: false
         shell: pwsh
         run: |
           # --- Variables ---
@@ -257,11 +273,11 @@ jobs:
             Write-Error "❌ Failed to read AnyDesk ID (service may not be running or CLI not supported)."
             exit 1
           }
-          #Write-Host "`n=== ANYDESK ACCESS ==="
-          #Write-Host "ID: $anydeskId"
-          #Write-Host "Status: $status"
-          #Write-Host "Password: $env:RDP_CREDS"
-          #Write-Host "========================`n"
+          Write-Host "`n=== ANYDESK ACCESS ==="
+          Write-Host "ID: $anydeskId"
+          Write-Host "Status: $status"
+          Write-Host "Password: $env:RDP_CREDS"
+          Write-Host "========================`n"
 
       - name: Maintain Connection
         shell: pwsh
