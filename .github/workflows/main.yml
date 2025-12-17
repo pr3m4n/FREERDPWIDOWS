@@ -97,7 +97,8 @@ jobs:
 
           # Remove wallpaper (force black background)
           Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value ""
-          Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name WallpaperStyle -Value 0 rundll32.exe user32.dll, UpdatePerUserSystemParameters
+          Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name WallpaperStyle -Value 0 
+          rundll32.exe user32.dll, UpdatePerUserSystemParameters
           Write-Host "✅ Wallpaper removed, background will be black"
           
           # Restart RDP service to apply resolution changes
