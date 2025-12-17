@@ -102,14 +102,6 @@ jobs:
           Set-ItemProperty -Path $rdpKey -Name "ColorDepth" -Value 32
           Write-Host "✅ RDP resolution locked to 1920x1080"
 
-          # Disable wallpaper globally for all users
-          $policyKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
-          if (-not (Test-Path $policyKey)) {
-              New-Item -Path $policyKey -Force | Out-Null
-          }
-          Set-ItemProperty -Path $policyKey -Name "DisableWallpaper" -Value 1 -Type DWord -Force
-          Write-Host "✅ Wallpaper disabled globally, background will be black for all RDP sessions"
-
           # Restart RDP service to apply changes
           Stop-Service -Name TermService -Force
           Start-Service -Name TermService
