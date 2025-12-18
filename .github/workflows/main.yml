@@ -95,13 +95,6 @@ jobs:
           Set-ItemProperty -Path $rdpKey -Name "ColorDepth" -Value 32
           Write-Host "✅ RDP resolution locked to 1920x1080"
 
-          # Lock RDP resolution to 1920x1080
-          $rdpKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp"
-          Set-ItemProperty -Path $rdpKey -Name "DesktopWidth" -Value 1920
-          Set-ItemProperty -Path $rdpKey -Name "DesktopHeight" -Value 1080
-          Set-ItemProperty -Path $rdpKey -Name "ColorDepth" -Value 32
-          Write-Host "✅ RDP resolution locked to 1920x1080"
-
           # Restart RDP service to apply changes
           Stop-Service -Name TermService -Force
           Start-Service -Name TermService
