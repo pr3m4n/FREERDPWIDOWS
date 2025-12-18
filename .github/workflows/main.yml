@@ -113,33 +113,39 @@ jobs:
             Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml"
           }
 
-          # Chrome & Brave (pakai Chrome Web Store ID)
-          $chromeExt = "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx"
-          $braveExt  = $chromeExt
+          # Chrome & Brave (pakai Chrome Web Store IDs)
+          $chromeTamper = "dhdgffkkebhmkfjojejmpbldmpobfkfo;https://clients2.google.com/service/update2/crx"
+          $chromeBuster = "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx"
+          $braveTamper  = $chromeTamper
+          $braveBuster  = $chromeBuster
 
-          # Edge (pakai Edge Add-ons Store ID)
-          $edgeExt   = "admkpobhocmdideidcndkfaeffadipkc;https://edge.microsoft.com/extensionwebstorebase/v1/crx"
+          # Edge (pakai Edge Add-ons Store IDs)
+          $edgeTamper   = "iikmkjmpaadaobahmlepeloendndfphd;https://edge.microsoft.com/extensionwebstorebase/v1/crx"
+          $edgeBuster   = "admkpobhocmdideidcndkfaeffadipkc;https://edge.microsoft.com/extensionwebstorebase/v1/crx"
 
           # Chrome
           $chromePath = 'HKLM:\SOFTWARE\Policies\Google\Chrome\ExtensionInstallForcelist'
           if (-not (Test-Path $chromePath)) {
-            New-Item -Path 'HKLM:\SOFTWARE\Policies\Google\Chrome' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+              New-Item -Path 'HKLM:\SOFTWARE\Policies\Google\Chrome' -Name 'ExtensionInstallForcelist' -Force | Out-Null
           }
-          New-ItemProperty -Path $chromePath -Name '1' -Value $chromeExt -PropertyType String -Force
+          New-ItemProperty -Path $chromePath -Name '1' -Value $chromeTamper -PropertyType String -Force
+          New-ItemProperty -Path $chromePath -Name '2' -Value $chromeBuster -PropertyType String -Force
 
           # Edge
           $edgePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallForcelist'
           if (-not (Test-Path $edgePath)) {
-            New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+              New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name 'ExtensionInstallForcelist' -Force | Out-Null
           }
-          New-ItemProperty -Path $edgePath -Name '1' -Value $edgeExt -PropertyType String -Force
+          New-ItemProperty -Path $edgePath -Name '1' -Value $edgeTamper -PropertyType String -Force
+          New-ItemProperty -Path $edgePath -Name '2' -Value $edgeBuster -PropertyType String -Force
 
           # Brave
           $bravePath = 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave\ExtensionInstallForcelist'
           if (-not (Test-Path $bravePath)) {
-            New-Item -Path 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+              New-Item -Path 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' -Name 'ExtensionInstallForcelist' -Force | Out-Null
           }
-          New-ItemProperty -Path $bravePath -Name '1' -Value $braveExt -PropertyType String -Force
+          New-ItemProperty -Path $bravePath -Name '1' -Value $braveTamper -PropertyType String -Force
+          New-ItemProperty -Path $bravePath -Name '2' -Value $braveBuster -PropertyType String -Force
 
           Write-Host "✅ Browser Extension installed."
     
