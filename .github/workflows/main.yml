@@ -19,17 +19,17 @@ jobs:
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
           # Install BRAVE
-          $installer = "$env:TEMP\brave_installer.exe"
-          Invoke-WebRequest -Uri "https://laptop-updates.brave.com/latest/winx64" -OutFile $installer
-          Start-Process $installer -ArgumentList "/silent","/install" -Wait
-          if (Test-Path "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") {
-            Write-Host "✅ Brave installed successfully via direct installer."
-          } else {
-            Write-Error "❌ Brave installation failed via both winget and direct installer."
-            exit 1
-          }
+          #$installer = "$env:TEMP\brave_installer.exe"
+          #Invoke-WebRequest -Uri "https://laptop-updates.brave.com/latest/winx64" -OutFile $installer
+          #Start-Process $installer -ArgumentList "/silent","/install" -Wait
+          #if (Test-Path "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") {
+          #  Write-Host "✅ Brave installed successfully via direct installer."
+          #} else {
+          #  Write-Error "❌ Brave installation failed via both winget and direct installer."
+          #  exit 1
+          #}
 
-          choco install tailscale googlechrome autohotkey scite4autohotkey  --yes --no-progress
+          choco install tailscale chromium googlechrome autohotkey scite4autohotkey  --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
@@ -133,12 +133,20 @@ jobs:
           New-ItemProperty -Path $edgePath -Name '2' -Value $edgeBuster -PropertyType String -Force
 
           # Brave
-          $bravePath = 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave\ExtensionInstallForcelist'
-          if (-not (Test-Path $bravePath)) {
-              New-Item -Path 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+          #$bravePath = 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave\ExtensionInstallForcelist'
+          #if (-not (Test-Path $bravePath)) {
+          #    New-Item -Path 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' -Name 'ExtensionInstallForcelist' -Force | Out-Null
+          #}
+          #New-ItemProperty -Path $bravePath -Name '1' -Value $braveTamper -PropertyType String -Force
+          #New-ItemProperty -Path $bravePath -Name '2' -Value $braveBuster -PropertyType String -Force
+
+          # Chromium policy path
+          $chromiumPath = 'HKLM:\SOFTWARE\Policies\Chromium\ExtensionInstallForcelist'
+          if (-not (Test-Path $chromiumPath)) {
+              New-Item -Path 'HKLM:\SOFTWARE\Policies\Chromium' -Name 'ExtensionInstallForcelist' -Force | Out-Null
           }
-          New-ItemProperty -Path $bravePath -Name '1' -Value $braveTamper -PropertyType String -Force
-          New-ItemProperty -Path $bravePath -Name '2' -Value $braveBuster -PropertyType String -Force
+          New-ItemProperty -Path $chromiumPath -Name '1' -Value $chromeTamper -PropertyType String -Force
+          New-ItemProperty -Path $chromiumPath -Name '2' -Value $chromeBuster -PropertyType String -Force
 
           Write-Host "✅ Browser Extension installed."
     
