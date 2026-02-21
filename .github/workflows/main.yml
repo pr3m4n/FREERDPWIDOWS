@@ -32,7 +32,7 @@ jobs:
           }
 
           # INSTALL the Rest
-          choco install tailscale chromium googlechrome autohotkey scite4autohotkey  --yes --no-progress
+          choco install tailscale chromium googlechrome autohotkey  --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
