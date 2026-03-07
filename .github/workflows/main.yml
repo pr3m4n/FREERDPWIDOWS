@@ -149,7 +149,32 @@ jobs:
           }
           New-ItemProperty -Path $chromiumPath -Name '1' -Value $chromeTamper -PropertyType String -Force
           New-ItemProperty -Path $chromiumPath -Name '2' -Value $chromeBuster -PropertyType String -Force
-
+          
+          # --- TAMBAHAN KHUSUS FIREFOX (Tampermonkey) ---
+          $ffInstallPath = "C:\Program Files\Mozilla Firefox"
+          $distPath = "$ffInstallPath\distribution"
+          
+          # Membuat folder distribution jika belum ada
+          if (-not (Test-Path $distPath)) { 
+              New-Item -Path $distPath -ItemType Directory -Force | Out-Null 
+          }
+          
+          # Membuat file policies.json untuk force install ekstensi
+          $ffPolicy = @"
+          {
+            "policies": {
+              "ExtensionSettings": {
+                "firefox@tampermonkey.net": {
+                  "installation_mode": "force_installed",
+                  "install_url": "https://addons.mozilla.org/firefox/downloads/latest/tampermonkey/latest.xpi"
+                }
+              }
+            }
+          }
+          "@
+          $ffPolicy | Out-File -FilePath "$distPath\policies.json" -Encoding utf8 -Force
+          Write-Host "✅ Firefox Tampermonkey policy applied."
+          
           Write-Host "✅ Browser Extension installed."
     
       - name: Configure Network (Disable IPv6)
