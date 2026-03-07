@@ -31,7 +31,7 @@ jobs:
           #}
 
           # INSTALL Additional sw
-          choco install tailscale librefox waterfox firefox chromium googlechrome autohotkey  --yes --no-progress
+          choco install tailscale librewolf waterfox firefox chromium googlechrome autohotkey  --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
             Write-Host "✅ Found Tailscale executable at: $tailscaleExe"
