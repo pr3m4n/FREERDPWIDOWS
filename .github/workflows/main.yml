@@ -175,7 +175,32 @@ jobs:
           $ffPolicy | Out-File -FilePath "$distPath\policies.json" -Encoding utf8 -Force
           Write-Host "✅ Firefox Tampermonkey policy applied."
           
-          Write-Host "✅ Browser Extension installed."
+          # --- TAMBAHAN KHUSUS WATERFOX (Tampermonkey) ---
+          $wfInstallPath = "C:\Program Files\Waterfox"
+          $wfDistPath = "$wfInstallPath\distribution"
+          
+          # Membuat folder distribution jika belum ada di Waterfox
+          if (-not (Test-Path $wfDistPath)) { 
+              New-Item -Path $wfDistPath -ItemType Directory -Force | Out-Null 
+          }
+          
+          # Gunakan konfigurasi policy yang sama (Tampermonkey Firefox kompatibel dengan Waterfox)
+          $wfPolicy = @"
+          {
+            "policies": {
+              "ExtensionSettings": {
+                "firefox@tampermonkey.net": {
+                  "installation_mode": "force_installed",
+                  "install_url": "https://addons.mozilla.org/firefox/downloads/latest/tampermonkey/latest.xpi"
+                }
+              }
+            }
+          }
+          "@
+          $wfPolicy | Out-File -FilePath "$wfDistPath\policies.json" -Encoding utf8 -Force
+          Write-Host "✅ Waterfox Tampermonkey policy applied."
+          
+          Write-Host "✅ All Browser Extension installed."
     
       - name: Configure Network (Disable IPv6)
         shell: pwsh
