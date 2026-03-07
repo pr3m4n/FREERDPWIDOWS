@@ -19,20 +19,18 @@ jobs:
             iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           }
           # Install BRAVE
-          #$installer = "$env:TEMP\brave_installer.exe"
-          #Invoke-WebRequest -Uri "https://laptop-updates.brave.com/latest/winx64" -OutFile $installer
-          #Start-Process $installer -ArgumentList "/silent","/install" -Wait
+          $installer = "$env:TEMP\brave_installer.exe"
+          Invoke-WebRequest -Uri "https://laptop-updates.brave.com/latest/winx64" -OutFile $installer
+          Start-Process $installer -ArgumentList "/silent","/install" -Wait
           
-          #choco install brave --pre
-          #if (Test-Path "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") {
-          #  Write-Host "✅ Brave installed successfully via direct installer."
-          #} else {
-          #  Write-Error "❌ Brave installation failed via both winget and direct installer."
-          #  exit 1
-          #}
+          if (Test-Path "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") {
+            Write-Host "✅ Brave installed successfully via direct installer."
+          } else {
+            Write-Error "❌ Brave installation failed via both winget and direct installer."
+            exit 1
+          }
 
           # INSTALL Additional sw
-          choco install brave --pre --yes --no-progress
           choco install tailscale chromium googlechrome waterfox firefox autohotkey  --yes --no-progress
           $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
           if (Test-Path $tailscaleExe) {
